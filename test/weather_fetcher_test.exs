@@ -27,6 +27,6 @@ defmodule WeatherFetcherTest do
   test "remove_other_sections" do
     teststr = "Short term... weather is happening \nLong term... probs more weather"
     expected = "Short term... weather is happening \n"
-    assert WF.remove_other_sections(teststr, ~r/Short term\.\.\./) == expected
+    assert WF.remove_other_sections(teststr, "Short term...") == expected
   end
 end
