@@ -17,10 +17,16 @@ defmodule WeatherFetcherTest do
   test "organizes into sections" do
     use_cassette "weather_fetch" do
       m = WF.get_section_map
-      assert Map.fetch(m, "Updates") != nil
-      assert Map.fetch(m, "Short term") != nil
-      assert Map.fetch(m, "Long term") != nil
-      assert Map.fetch(m, "Some missing section") == :error
+      assert Map.get(m, "Updates") != nil
+      assert Map.get(m, "Short term") != ""
+      assert Map.get(m, "Long term") != ""
+      assert Map.get(m, "Some missing section") == nil
     end
+  end
+
+  test "remove_other_sections" do
+    teststr = "Short term... weather is happening \nLong term... probs more weather"
+    expected = "Short term... weather is happening \n"
+    assert WF.remove_other_sections(teststr, ~r/Short term\.\.\./) == expected
   end
 end

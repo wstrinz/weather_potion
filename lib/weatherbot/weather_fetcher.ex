@@ -1,12 +1,22 @@
 defmodule Weatherbot.WeatherFetcher do
-  @url "https://www.wunderground.com/DisplayDisc.asp?DiscussionCode=MPX"
-  @otherurl "http://forecast.weather.gov/product.php?site=CRH&product=AFD&issuedby=MKX"
-  @update_regex ~r/Update\.\.\./
-  @short_term_reg ~r/Short term\.\.\./
-  @long_term_reg ~r/Long term\.\.\./
+  @url_base "https://www.wunderground.com/DisplayDisc.asp?DiscussionCode="
+  @mn_url "https://www.wunderground.com/DisplayDisc.asp?DiscussionCode=MPX"
+  @madison_url "http://forecast.weather.gov/product.php?site=CRH&product=AFD&issuedby=MKX"
+  @regexes [~r/Update\.\.\./, ~r/Short term\.\.\./, ~r/Long term\.\.\./]
+  @update_regex Enum.at(@regexes, 0)
+  @short_term_reg Enum.at(@regexes, 1)
+  @long_term_reg Enum.at(@regexes, 2)
+
+  def url_for_site(site_code) do
+    "#{@url_base}#{site_code}"
+  end
+
+  def get_forecast(site_code) do
+    HTTPoison.get!(url_for_site(site_code)).body
+  end
 
   def get_forecast do
-    HTTPoison.get!(@url).body
+    get_forecast("MKX")
   end
 
   def parsed_forecast(forecast_body) do
@@ -22,6 +32,15 @@ defmodule Weatherbot.WeatherFetcher do
     |> Enum.map(&String.strip/1)
   end
 
+  def remove_other_sections(section, reg) do
+    other_regexes = @regexes |> Enum.reject(fn r -> r == reg end)
+
+    Enum.reduce(other_regexes, section, fn r, str ->
+      String.split(str, r)
+      |> Enum.at(0)
+    end)
+  end
+
   def section_for(reg, sections) do
     section =
       sections
@@ -29,6 +48,7 @@ defmodule Weatherbot.WeatherFetcher do
 
     if section do
       section
+      |> remove_other_sections(reg)
       |> String.split(reg)
       |> Enum.at(-1)
       |> String.strip
