@@ -5,27 +5,21 @@ defmodule Weatherbot.WeatherFetcher do
   @short_term_reg ~r/Short term\.\.\./
   @long_term_reg ~r/Long term\.\.\./
 
-  def hello do
-    f = forecast()
-    IO.inspect f
+  def get_forecast do
+    HTTPoison.get!(@url).body
   end
 
-  def forecast do
-    forecast = HTTPoison.get!(@url)
-    forecast.body
-  end
-
-  def parsed_forecast do
+  def parsed_forecast(forecast_body) do
      finder = &(Floki.find(&1, ".inner-content pre"))
-     forecast()
+     forecast_body
      |> Floki.parse
      |> finder.()
      |> Floki.text
   end
 
-  def forecast_sections do
+  def forecast_sections(forecast_body) do
     stripped = &(String.strip(&1))
-    parsed_forecast
+    parsed_forecast(forecast_body)
     |> String.split("&&")
     |> Enum.map(stripped)
   end
@@ -45,8 +39,8 @@ defmodule Weatherbot.WeatherFetcher do
     end
   end
 
-  def section_map do
-    sections = forecast_sections
+  def section_map(sections) do
+    sections = sections
     %{
       "Updates" => section_for(@update_regex, sections),
       "Short term" => section_for(@short_term_reg, sections),
@@ -65,12 +59,23 @@ defmodule Weatherbot.WeatherFetcher do
     end
   end
 
-  def sendmsg do
-    section_map |>
-    Enum.map(fn {k, v} -> chunks_for "*#{k}* #{v}" end)
+  def sendmsg(sections) do
+    sections
+    |> Enum.map(fn {k, v} -> chunks_for "*#{k}* #{v}" end)
     |> List.flatten
     |> Enum.map(&(String.replace(&1, ~r/\n(\w)/, " \\1")))
     |> Enum.map(&(SlackWebhook.send(&1)))
     |> IO.inspect
+  end
+
+
+  def get_section_map do
+    get_forecast
+    |> forecast_sections
+    |> section_map
+  end
+
+  def run do
+    get_section_map |> sendmsg
   end
 end
