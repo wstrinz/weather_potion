@@ -10,6 +10,7 @@ defmodule Weatherbot.Mixfile do
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
      aliases: aliases(),
+     preferred_cli_env: [ vcr: :test, "vcr.delete": :test, "vcr.check": :test, "vcr.show": :test ],
      deps: deps()]
   end
 
@@ -36,6 +37,7 @@ defmodule Weatherbot.Mixfile do
      {:postgrex, ">= 0.0.0"},
      {:phoenix_html, "~> 2.6"},
      {:floki, "~> 0.11.0"},
+     {:exvcr, "~> 0.7", only: :test},
      {:slack_webhook, "~> 0.1.0"},
      {:phoenix_live_reload, "~> 1.0", only: :dev},
      {:gettext, "~> 0.11"},
