@@ -35,7 +35,7 @@ defmodule Weatherbot.WeatherFetcher do
   def remove_other_sections(section, reg) do
     other_regexes = @section_headers |> Enum.reject(fn r -> r == reg end)
 
-    Enum.reduce(other_regexes, "#{reg}#{section}", fn r, str ->
+    Enum.reduce(other_regexes, "*#{reg}* #{section}", fn r, str ->
       String.split(str, r)
       |> Enum.at(0)
     end)
@@ -58,12 +58,9 @@ defmodule Weatherbot.WeatherFetcher do
   end
 
   def section_map(sections) do
-    sections = sections
-    %{
-      "Updates" => section_for(@update_regex, sections),
-      "Short term" => section_for(@short_term_reg, sections),
-      "Long term" => section_for(@long_term_reg, sections)
-    }
+    Enum.into @section_headers, %{}, fn header ->
+      {header, section_for(header, sections)}
+    end
   end
 
   def chunks_for(msg) do
@@ -77,10 +74,17 @@ defmodule Weatherbot.WeatherFetcher do
     end
   end
 
-  def sendmsg(sections) do
+  def send_sections(sections) do
     sections
     |> Enum.filter(fn {_, v} -> v end)
-    |> Enum.map(fn {k, v} -> chunks_for "*#{k}* #{v}" end)
+    |> Map.values
+    |> Enum.join("\n\n")
+    |> sendmsg
+  end
+
+  def sendmsg(msg) do
+    msg
+    |> chunks_for
     |> List.flatten
     |> Enum.map(&(String.replace &1, ~r/\n(\w)/, " \\1"))
     |> Enum.map(&SlackWebhook.send/1)
@@ -95,6 +99,6 @@ defmodule Weatherbot.WeatherFetcher do
   end
 
   def run do
-    get_section_map |> sendmsg
+    get_section_map |> send_sections
   end
 end
