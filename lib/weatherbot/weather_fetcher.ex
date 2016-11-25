@@ -10,27 +10,25 @@ defmodule Weatherbot.WeatherFetcher do
   end
 
   def parsed_forecast(forecast_body) do
-     finder = &(Floki.find(&1, ".inner-content pre"))
-     forecast_body
-     |> Floki.parse
-     |> finder.()
-     |> Floki.text
+    forecast_body
+    |> Floki.parse
+    |> Floki.find(".inner-content pre")
+    |> Floki.text
   end
 
   def forecast_sections(forecast_body) do
-    stripped = &(String.strip(&1))
     parsed_forecast(forecast_body)
     |> String.split("&&")
-    |> Enum.map(stripped)
+    |> Enum.map(&String.strip/1)
   end
 
   def section_for(reg, sections) do
-    update_section =
+    section =
       sections
       |> Enum.find(fn sect -> Regex.match?(reg, sect)  end)
 
-    if update_section do
-      update_section
+    if section do
+      section
       |> String.split(reg)
       |> Enum.at(-1)
       |> String.strip
@@ -50,10 +48,10 @@ defmodule Weatherbot.WeatherFetcher do
 
   def chunks_for(msg) do
     if String.length(msg) >= 2000 do
-      msg |>
-      String.graphemes |>
-      Enum.chunk(2000) |>
-      Enum.map(&(Enum.join(&1)))
+      msg
+      |> String.graphemes
+      |> Enum.chunk(2000)
+      |> Enum.map(&Enum.join/1)
     else
       msg
     end
@@ -61,10 +59,11 @@ defmodule Weatherbot.WeatherFetcher do
 
   def sendmsg(sections) do
     sections
+    |> Enum.filter(fn {_, v} -> v end)
     |> Enum.map(fn {k, v} -> chunks_for "*#{k}* #{v}" end)
     |> List.flatten
-    |> Enum.map(&(String.replace(&1, ~r/\n(\w)/, " \\1")))
-    |> Enum.map(&(SlackWebhook.send(&1)))
+    |> Enum.map(&(String.replace &1, ~r/\n(\w)/, " \\1"))
+    |> Enum.map(&SlackWebhook.send/1)
     |> IO.inspect
   end
 
