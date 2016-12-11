@@ -5,12 +5,13 @@ defmodule Weatherbot.Station do
   schema "stations" do
     field :title, :string
     field :code, :string
+    field :last_forecast, :string
 
     timestamps
   end
 
   @required_fields ~w{title code}
-  @optional_fields ~w{}
+  @optional_fields ~w{last_forecast}
 
   def changeset(station, params \\ :empty) do
     station

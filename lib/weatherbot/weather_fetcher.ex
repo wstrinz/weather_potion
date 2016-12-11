@@ -5,9 +5,8 @@ defmodule Weatherbot.WeatherFetcher do
   @madison_url "http://forecast.weather.gov/product.php?site=CRH&product=AFD&issuedby=MKX"
   @section_headers [".UPDATE", ".SHORT TERM...", ".LONG TERM"]
   @section_ignore_strings ["AVIATION", "MARINE"]
-  @update_regex Enum.at(@section_headers, 0)
-  @short_term_reg Enum.at(@section_headers, 1)
-  @long_term_reg Enum.at(@section_headers, 2)
+  @default_station "MKX"
+
 
   def url_for_site(site_code) do
     "#{@url_base}#{site_code}"
@@ -18,7 +17,7 @@ defmodule Weatherbot.WeatherFetcher do
   end
 
   def get_forecast do
-    get_forecast("MKX")
+    get_forecast(@default_station)
   end
 
   def parsed_forecast(forecast_body) do
@@ -37,7 +36,7 @@ defmodule Weatherbot.WeatherFetcher do
   def remove_other_sections(section, reg) do
     other_regexes = @section_headers |> Enum.reject(fn r -> r == reg end)
 
-    Enum.reduce(other_regexes, "*#{reg}* #{section}", fn r, str ->
+    Enum.reduce(other_regexes, "*#{reg}* #{section}s", fn r, str ->
       String.split(str, r)
       |> Enum.at(0)
     end)
@@ -65,46 +64,18 @@ defmodule Weatherbot.WeatherFetcher do
     end
   end
 
-  def chunks_for(msg) do
-    if String.length(msg) >= 2000 do
-      msg
-      |> String.graphemes
-      |> Enum.chunk(2000)
-      |> Enum.map(&Enum.join/1)
-    else
-      msg
-    end
-  end
-
-  def send_sections(sections) do
+  def remove_ignored_sections(sections, ignore_list) do
     sections
-    |> Enum.filter(fn {_, v} -> v end)
-    |> Map.values
-    |> Enum.join("\n\n")
-    |> sendmsg
+    |> Enum.reject(fn sect -> Enum.any?(ignore_list, fn ig -> String.contains?(sect, ig) end) end)
   end
 
-  def sendmsg(msg) do
-    msg
-    |> chunks_for
-    |> List.flatten
-    |> Enum.map(&(String.replace &1, ~r/\n(\w)/, " \\1"))
-    |> Enum.map(&SlackWebhook.send/1)
-    |> IO.inspect
-  end
-
-  def remove_ignored_sections(sections) do
-    sections
-    |> Enum.reject(fn sect -> Enum.any?(@section_ignore_strings, fn ig -> String.contains?(sect, ig) end) end)
-  end
-
-  def get_section_map do
-    get_forecast
+  def get_section_list(code, ignore_list) do
+    get_forecast(code)
     |> forecast_sections
-    |> remove_ignored_sections
+    |> remove_ignored_sections(ignore_list)
   end
 
   def run do
-    get_section_map |> send_sections
+    get_section_list(@default_station, @section_ignore_strings) |> Weatherbot.SlackInterface.send_sections
   end
 end
