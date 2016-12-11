@@ -93,7 +93,6 @@ defmodule Weatherbot.WeatherFetcher do
     |> IO.inspect
   end
 
-
   def remove_ignored_sections(sections) do
     sections
     |> Enum.reject(fn sect -> Enum.any?(@section_ignore_strings, fn ig -> String.contains?(sect, ig) end) end)
