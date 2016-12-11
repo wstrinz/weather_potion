@@ -16,7 +16,7 @@ defmodule WeatherFetcherTest do
 
   test "organizes into sections" do
     use_cassette "weather_fetch" do
-      m = WF.get_forecast |> WF.forecast_sections |> WF.remove_ignored_sections
+      m = WF.get_forecast |> WF.forecast_sections |> WF.remove_ignored_sections(["MARINE"])
       assert String.contains?(Enum.at(m, 0), "UPDATE") == true
       # IO.inspect(m)
       # assert String.contains?(Enum.at(m, 1), "Short term") == true
