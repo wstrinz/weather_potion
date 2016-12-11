@@ -1,8 +1,10 @@
 defmodule Weatherbot.WeatherFetcher do
-  @url_base "https://www.wunderground.com/DisplayDisc.asp?DiscussionCode="
+  # @url_base "https://www.wunderground.com/DisplayDisc.asp?DiscussionCode="
+  @url_base "http://forecast.weather.gov/product.php?site=CRH&product=AFD&issuedby="
   @mn_url "https://www.wunderground.com/DisplayDisc.asp?DiscussionCode=MPX"
   @madison_url "http://forecast.weather.gov/product.php?site=CRH&product=AFD&issuedby=MKX"
-  @section_headers ["Update...", "Short term...", "Long term..."]
+  @section_headers [".UPDATE", ".SHORT TERM...", ".LONG TERM"]
+  @section_ignore_strings ["AVIATION", "MARINE"]
   @update_regex Enum.at(@section_headers, 0)
   @short_term_reg Enum.at(@section_headers, 1)
   @long_term_reg Enum.at(@section_headers, 2)
@@ -16,13 +18,13 @@ defmodule Weatherbot.WeatherFetcher do
   end
 
   def get_forecast do
-    get_forecast("MPX")
+    get_forecast("MKX")
   end
 
   def parsed_forecast(forecast_body) do
     forecast_body
     |> Floki.parse
-    |> Floki.find(".inner-content pre")
+    |> Floki.find("pre.glossaryProduct")
     |> Floki.text
   end
 
@@ -92,10 +94,15 @@ defmodule Weatherbot.WeatherFetcher do
   end
 
 
+  def remove_ignored_sections(sections) do
+    sections
+    |> Enum.reject(fn sect -> Enum.any?(@section_ignore_strings, fn ig -> String.contains?(sect, ig) end) end)
+  end
+
   def get_section_map do
     get_forecast
     |> forecast_sections
-    |> section_map
+    |> remove_ignored_sections
   end
 
   def run do
