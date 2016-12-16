@@ -33,6 +33,11 @@ defmodule Weatherbot.ForecastUpdater do
     |> Repo.update!
   end
 
+  def clear_forecast(station) do
+    Station.changeset(station, %{last_forecast: ""})
+    |> Repo.update!
+  end
+
   def run do
     stations = Repo.all(Station)
     Enum.map(stations, fn s -> update_station(s) end)

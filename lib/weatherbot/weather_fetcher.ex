@@ -76,6 +76,7 @@ defmodule Weatherbot.WeatherFetcher do
   end
 
   def run do
-    get_section_list(@default_station, @section_ignore_strings) |> Weatherbot.SlackInterface.send_sections
+    get_section_list(@default_station, @section_ignore_strings)
+    |> Weatherbot.SlackInterface.send_sections
   end
 end

@@ -21,6 +21,12 @@ defmodule Weatherbot.Router do
     post "/add_zip", WeatherController, :index
   end
 
+  scope "/", Weatherbot do
+    pipe_through :api
+
+    post "/webhook", WeatherController, :receive_webhook
+  end
+
   # Other scopes may use custom stacks.
   # scope "/api", Weatherbot do
   #   pipe_through :api
